@@ -260,8 +260,8 @@ void GcodeSuite::M43() {
   }
 
   // Get the range of pins to test or watch
-  const uint8_t first_pin = PARSED_PIN_INDEX('P', 0),
-                last_pin = parser.seenval('P') ? first_pin : NUM_DIGITAL_PINS - 1;
+  uint8_t first_pin = PARSED_PIN_INDEX('P', 0),
+          last_pin = parser.seenval('P') ? first_pin : NUMBER_PINS_TOTAL - 1;
 
   if (first_pin > last_pin) return;
 
@@ -270,6 +270,10 @@ void GcodeSuite::M43() {
   // Watch until click, M108, or reset
   if (parser.boolval('W')) {
     SERIAL_PROTOCOLLNPGM("Watching pins");
+    
+    #ifdef ARDUINO_ARCH_SAM
+      NOLESS(first_pin, 2);  // don't hijack the UART pins
+    #endif
     uint8_t pin_state[last_pin - first_pin + 1];
     for (uint8_t i = first_pin; i <= last_pin; i++) {
       pin_t pin = GET_PIN_MAP_PIN(i);
@@ -282,6 +286,7 @@ void GcodeSuite::M43() {
           pin_state[pin - first_pin] = analogRead(DIGITAL_PIN_TO_ANALOG_PIN(pin)); // int16_t pin_state[...]
         else
       //*/
+
           pin_state[i - first_pin] = digitalRead(pin);
     }
 
@@ -301,6 +306,7 @@ void GcodeSuite::M43() {
               ? analogRead(DIGITAL_PIN_TO_ANALOG_PIN(pin)) : // int16_t val
               :
           //*/
+
             digitalRead(pin);
         if (val != pin_state[i - first_pin]) {
           report_pin_state_extended(pin, ignore_protection, false);
